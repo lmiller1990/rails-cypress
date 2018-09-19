@@ -1,0 +1,19 @@
+<% if flash.present? %>
+  <% flash[:errors].each do |msg| %>
+    <%= content_tag :div, msg %>
+  <% end %>
+<% end %>
+
+<%= form_with model: @post, local: true do |f| %>
+  <%= f.label :title %>
+  <%= f.text_field :title %>
+
+  <%= f.label :body %>
+  <%= f.text_area :body %>
+
+  <%= f.select :category_id do %>
+    <%= options_from_collection_for_select(Category.all, :id, :name) %>
+  <% end %>
+
+  <%= f.submit %>
+<% end %>
