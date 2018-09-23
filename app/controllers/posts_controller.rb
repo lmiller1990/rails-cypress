@@ -1,4 +1,6 @@
 class PostsController < ApplicationController
+  protect_from_forgery unless: -> { request.format.json? }
+
   def index
     @posts = Post.all
   end
