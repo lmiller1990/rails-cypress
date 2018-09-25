@@ -8,7 +8,6 @@ module Test
       tables.delete 'schema.migrations'
       tables.each { |t| ActiveRecord::Base.connection.execute("TRUNCATE #{t} CASCADE") }
 
-      puts params['database']
       Rails.application.load_seed unless ['false', false].include?(params['database']['should_seed'])
 
       render plain: 'Truncated and seeded database'
