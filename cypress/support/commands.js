@@ -23,3 +23,14 @@
 //
 // -- This is will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
+
+import axios from 'axios'
+
+Cypress.Commands.add('cleanDatabase', () => {
+  console.log('Cleaning database')
+
+  return axios({
+    method: 'DELETE',
+    url: 'http://localhost:3000/clean_database'
+  })
+})

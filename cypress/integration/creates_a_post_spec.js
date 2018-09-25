@@ -1,6 +1,10 @@
 const context = describe
 
 describe('Creates a post', () => {
+  beforeEach(() => {
+    cy.cleanDatabase()
+  })
+
   context('the post is valid', () => {
     it('redirects to the created post', () => {
       cy.visit('localhost:3000/posts/new')
