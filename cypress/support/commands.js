@@ -26,11 +26,21 @@
 
 import axios from 'axios'
 
-Cypress.Commands.add('cleanDatabase', () => {
-  console.log('Cleaning database')
+Cypress.Commands.add('cleanDatabase', (opts = { seed: true }) => {
 
   return axios({
     method: 'POST',
-    url: 'http://localhost:3000/test/clean_database'
+    url: 'http://localhost:3000/test/clean_database',
+    data: { should_seed: opts.seed }
+  })
+})
+
+Cypress.Commands.add('seedPosts', (count) => {
+  console.log(count)
+
+  return axios({
+    method: 'POST',
+    url: 'http://localhost:3000/test/seed_posts',
+    data: { count }
   })
 })

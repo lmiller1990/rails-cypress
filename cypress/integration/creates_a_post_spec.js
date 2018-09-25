@@ -33,3 +33,18 @@ describe('Creates a post', () => {
     })
   })
 })
+
+describe('views posts index', () => {
+  before(() => {
+    cy.cleanDatabase({ seed: false }).then(() => {
+      cy.seedPosts(5)
+    })
+  })
+
+  it('views index page with some posts', () => {
+    cy.visit('localhost:3000/posts')
+
+    cy.get('.posts')
+    cy.get('.posts').find('.post').should('have.length', 5)
+  })
+})

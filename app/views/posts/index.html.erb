@@ -1,16 +1,18 @@
 <h3>Posts</h3>
 
-<% @posts.each do |post| %>
-  <div class="post">
-    <div class="title">
-      Title: <%= post.title %>
-    </div>
+<div class="posts">
+  <% @posts.each do |post| %>
+    <div class="post">
+      <div class="title">
+        Title: <%= post.title %>
+      </div>
 
-    <div class="body">
-      Body<%= post.title %>
+      <div class="body">
+        Body<%= post.title %>
+      </div>
+      
+      <%= link_to 'edit', edit_post_url(post) %>
+      <hr>
     </div>
-    
-    <%= link_to 'edit', edit_post_url(post) %>
-    <hr>
-  </div>
-<% end %>
+  <% end %>
+</div>
