@@ -22,7 +22,7 @@ Rails.application.configure do
     Rails.application.config.middleware.insert_before 0, Rack::Cors do
       allow do
         origins '*'
-        resource '/clean_database', headers: :any, methods: %i(delete)
+        resource '/test/*', headers: :any, methods: %i(post)
       end
     end
   end

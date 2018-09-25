@@ -30,7 +30,7 @@ Cypress.Commands.add('cleanDatabase', () => {
   console.log('Cleaning database')
 
   return axios({
-    method: 'DELETE',
-    url: 'http://localhost:3000/clean_database'
+    method: 'POST',
+    url: 'http://localhost:3000/test/clean_database'
   })
 })

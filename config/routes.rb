@@ -5,7 +5,6 @@ Rails.application.routes.draw do
 
   namespace :test do
     post 'clean_database', to: 'databases#clean_database'
+    post 'seed_posts', to: 'seeds#seed_posts'
   end
-    #delete '/clean_database', controller: 'test', action: 'clean_database'
-    # delete '/clean_database' => 'database_clean', action: :destroy if Rails.env.test?
 end
