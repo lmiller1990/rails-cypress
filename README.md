@@ -366,7 +366,7 @@ Furthermore, a `cypress` folder was created for you.
 
 ## A Creates Post Test
 
-Let's migrate the first test - creating a post succesfully - to Cypress. Create the test with `touch cypress/integration/posts.spec.js`, and add the following:
+Let's migrate the first test - creating a post succesfully - to Cypress. First, start the rails server by running `rails server` in a separate terminal from Cypress. Next, create the test with `touch cypress/integration/posts.spec.js`, and add the following:
 
 ```js
 const context = describe
@@ -410,4 +410,110 @@ There are some problems:
 
 Let's get to work on the first two. 
 
-## Running in RAILS_ENV=test
+## Test Seed Data and Running in RAILS_ENV=test
+
+Let's set up some basic seed data for the tests to use. First, create a `seeds` folder containing a `test.rb` file by running `mkdir db/seeds && touch db/seeds/test.rb`. Inside, add:
+
+```rb
+ruby = Category.create!(name: 'ruby')
+javascript = Category.create!(name: 'javascript')
+
+Post.create!(title: 'Seed Post', body: 'This is a seed post.', category: ruby)
+```
+
+Next, in `db/seeds.rb` add:
+
+```rb
+load(Rails.root.join( 'db', 'seeds', "#{Rails.env.downcase}.rb"))
+```
+
+This will seed the correct seed file based on the current `RAILS_ENV`. 
+
+## Cleaning the Database between Tests
+
+Now we have a way to seed data, but no way to clean the database after each test. The way I've been handling this is by making a POST request to dedicated `/test//clean_database` endpoint __before__ each test, as [recommended by Cypress](https://docs.cypress.io/guides/references/best-practices.html#Using-after-or-afterEach-hooks). Let's make that API. First, update `config/routes.rb`:
+
+```rb
+Rails.application.routes.draw do
+
+  # ...
+
+  namespace :test do
+    post 'clean_database', to: 'databases#clean_database'
+    post 'seed_posts', to: 'seeds#seed_posts'
+  end
+end
+```
+
+Next create the controller and spec: `mkdir app/controllers/test && touch app/controllers/test/databases_controller.rb` and `mkdir spec/controllers && mkdir spec/controllers/test && touch spec/controllers/test/databases_controller_spec.rb`.
+
+Starting with `databases_controller_spec.rb`, add the following:
+
+```rb
+require 'rails_helper'
+
+describe Test::DatabasesController do
+  describe '/clean_database' do
+    it 'truncates and seeds the database' do
+      category = create(:category)
+      5.times { |i| create(:post, category: category) }
+
+      post :clean_database, params: { 'database': { 'should_seed': true } }
+
+      # Seed db/seeds/test for default seeds
+      # Default 2 categories and 1 post
+      expect(Post.count).to eq 1
+      expect(Category.count).to eq 2
+    end
+
+    it 'truncates and seeds the database' do
+      category = create(:category)
+      5.times { |i| create(:post, category: category) }
+
+      post :clean_database, params: { 'database': { 'should_seed': false } }
+ 
+      expect(Post.count).to eq 0
+      expect(Category.count).to eq 0
+    end
+  end
+end
+```
+
+There are two functions this API provides. Both specs test for truncation. We also allow a `should_seed` parameter to be provided. If `should_seed` is true, then we repopulate the database using the data defined in `db/seeds/test.rb`.
+
+The controller implementation is as follows:
+
+```rb
+module Test
+  class DatabasesController < ApplicationController
+
+    skip_before_action :verify_authenticity_token
+
+    def clean_database
+      tables = ActiveRecord::Base.connection.tables
+      tables.delete 'schema.migrations'
+      tables.each { |t| ActiveRecord::Base.connection.execute("TRUNCATE #{t} CASCADE") }
+
+      Rails.application.load_seed unless ['false', false].include?(params['database']['should_seed'])
+
+      render plain: 'Truncated and seeded database'
+    end
+  end
+end
+```
+
+This should yield two passing specs. Now, restart the Rails server with `RAILS_ENV=test rails server`. Now, we need a way to actually access the API from within Cypress. Inside of `cypress/support/commands.js`, add the following:
+
+```js
+import axios from 'axios'
+
+Cypress.Commands.add('cleanDatabase', (opts = { seed: true }) => {
+  return axios({
+    method: 'POST',
+    url: 'http://localhost:3000/test/clean_database',
+    data: { should_seed: opts.seed }
+  })
+})
+```
+
+Cypress automatically loads all the helpers in `commands.js` for us.
