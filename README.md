@@ -38,6 +38,7 @@ group :development, :test do
   gem 'factory_bot_rails'
   gem 'selenium-webdriver'
   gem 'webdrivers'
+  gem 'rack-cors'
 end
 ```
 
@@ -516,4 +517,91 @@ Cypress.Commands.add('cleanDatabase', (opts = { seed: true }) => {
 })
 ```
 
-Cypress automatically loads all the helpers in `commands.js` for us.
+Cypress automatically loads all the helpers in `commands.js` for us. 
+
+Since Rails is running on port 3000, and Cypress is assigned an arbitrary port, we need to support CORS for the `/test` routes. Inside `config/environments/test.rb`, add the following:
+
+```rb
+if Rails.env.test?
+  Rails.application.config.middleware.insert_before 0, Rack::Cors do
+    allow do
+      origins '*'
+      resource '/test/*', headers: :any, methods: %i(post)
+    end
+  end
+end
+```
+
+This allows CORS for the test environment only. Restart the Rails server, and reopen the Cypress UI if you closed it. It should pass... alas, it does not. 
+
+If you look closely, only on the initial opening of the Cypress UI, the browser kind of "flickers" once. For some reason, this causes the `beforeEach` hook to be called twice, messing up the seed data. The post request contains the category id of the first seed run, however since the browser flickers and causes the data to be reseeded, the initial category id used in the test no longer exists! 
+
+Once you have the UI running, however, simply rerunning the test should be enough to pass. Typically I only open the UI once, and leave it open, so it is not a big deal locally. On CI, this is a huge problem though. I'm going to get in contact with the Cypress team and see if they have a work around.
+
+Anyway, one last thing I want to add is the ability to seed some data, depending on the test. For this, I'll use another test-env-only controller. Create it with `touch app/controllers/test/seeds_controller.rb`. Add a test with `touch spec/controllers/test/seeds_controller_spec.rb`. Add the following test:
+
+```rb
+require 'rails_helper'
+
+describe Test::SeedsController do
+  describe '/seed_posts' do
+    it 'seeds posts' do
+      create(:category)
+
+      expect {
+        post :seed_posts, params: { count: 1 }
+      }.to change { Post.count }.by 1
+    end
+  end
+end
+```
+
+This endpoint will simply seed a specified number posts. Now, the implementation in `seeds_controller.rb`:
+
+```rb
+module Test
+  class SeedsController < ApplicationController
+
+    skip_before_action :verify_authenticity_token
+
+    def seed_posts
+      category = Category.create!(name: 'ruby')
+      count = params[:count] || 0
+
+      count.to_i.times do |c|
+        Post.create!(
+          title: "Post ##{c}", 
+          body: "This is post ##{c}", 
+          category: category)
+      end
+    end
+  end
+end
+```
+
+This test should pass. Here are two more tests - one for the case where a post title is too short, and an error is displayed, and another for the `/posts` index page. This once will make use of the new `/seed_posts` route, so update `commands.js`:
+
+```
+Cypress.Commands.add('seedPosts', (count) => {
+  return axios({
+    method: 'POST',
+    url: 'http://localhost:3000/test/seed_posts',
+    data: { count }
+  })
+})
+```
+
+Everything passes! 
+
+ss: cypress_5
+
+## Conclusion and Thoughts
+
+This was a very long article. We covered:
+
+- Setting up a traditional Rails app
+- Installing Cypress
+- Creating specific route for cleaning and seeding the database
+- Using Cypress hooks, such as `beforeEach`, and custom commands
+
+Cypress is certainly a great tool, and a refreshing new angle on E2E testing. The lack of support for non Chromium based browsers, and of information on how to integrate it with various backends led to some challenges. However, I'm positive Cypress is going in a good direction and will continue to refine my workflow and integration with Rails.
