@@ -1,4 +1,4 @@
-Traditionally, Rails gives us a full stack development framework including E2E tests with Selenium to develop websites. Let's see how to transition an app using Rails' built in system tests to using cypress.io, a new E2E framework built on Node.js, targetting modern JavaScript heavy applications.
+Traditionally, Rails gives us a full stack development framework including E2E tests with Selenium to develop websites. Let's see how to transition an app using Rails' built in system tests to using Cypress, a new E2E framework built on Node.js, targetting modern JavaScript heavy applications.
 
 A common Rails stack looks like:
 
@@ -357,7 +357,7 @@ Next, following their [documentation](https://docs.cypress.io/guides/getting-sta
 
 Finally, run `yarn cypress:open`. You should see:
 
-ss: cypress_1
+![](https://user-images.githubusercontent.com/19196536/46187267-c1f00280-c31d-11e8-9eaf-59844f46baef.png)
 
 Furthermore, a `cypress` folder was created for you.
 
@@ -389,15 +389,15 @@ The Cypress DSL is fairly easy to read. Strictly speaking, `{force: true}` shoul
 
 If you still have the Cypress UI open, search for the test using the search box:
 
-ss: cypress_3
+![](https://user-images.githubusercontent.com/19196536/46187265-c1f00280-c31d-11e8-8b67-0193827354e5.png)
 
 This fails, of course:
 
-ss: cypress_2
+![](https://user-images.githubusercontent.com/19196536/46187266-c1f00280-c31d-11e8-8122-7583ff289024.png)
 
 Because no categories exist. Before implementing a nice work around, just create one by dropping down into `rails console` and running `Category.create!(name: 'ruby')`. Now the test passes!
 
-cypress_4
+![](https://user-images.githubusercontent.com/19196536/46187264-c1576c00-c31d-11e8-8795-961f4ebfdb53.png)
 
 There are some problems:
 
@@ -591,7 +591,7 @@ Cypress.Commands.add('seedPosts', (count) => {
 
 Everything passes! 
 
-ss: cypress_5
+![](https://user-images.githubusercontent.com/19196536/46187263-c1576c00-c31d-11e8-9357-8e1089396cef.png)
 
 ## Conclusion and Thoughts
 
