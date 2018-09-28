@@ -7,12 +7,12 @@ A common Rails stack looks like:
 - DatabaseCleaner (or just ActiveRecord) for cleaning the database between tests
 - Selenium for driving the browser in E2E tests
 
-Moving to cypress.io (at least for the E2E tests), it now looks like:
+Moving to Cypress (at least for the E2E tests), it now looks like:
 
 - Mocha/Chai combo for the testing framework
 - No good replacement for FactoryBot
 - Need to figure the database clearing/truncation out on our own
-- cypress.io for the browser tests
+- Cypress for the browser tests
 
 At first glance, and based on my experience, the stack is a lot less "batteries included", which is what I like about Rails. I'm continuing to try new things out. This article will
 
@@ -24,7 +24,9 @@ I like each blog post to be independant, and include all the steps to recreate i
 
 ## Creating the Rails App
 
-Generate the Rails app, skipping MiniTest and using postgres for the database with `rails new cypress_app -T --database=postgresql`. Update `group :development, :test` in the `Gemfile`:
+Note: If you want to skip to the section where I add Cypress, ctrl+f "Installing and Setting Up Cypress".
+
+Generate the Rails app, skipping MiniTest and using Postgres for the database with `rails new cypress_app -T --database=postgresql`. Update `group :development, :test` in the `Gemfile`:
 
 Add FactoryBot and RSpec and webpacker.
 
@@ -48,7 +50,7 @@ Then run `bundle install`, and generate the binstub and `system` folder by runni
 rails generate rspec:install && mkdir spec/system
 ``` 
 
-Next. update `rails_helper.rb` to let us use `FactoryBot` methods directly in our specs. Also, we want to use `selenium_chrome_headless` for the specs (before moving to cypress.io):
+Next. update `rails_helper.rb` to let us use `FactoryBot` methods directly in our specs. Also, we want to use `selenium_chrome_headless` for the specs (before moving to Cypress):
 
 ```rb
 require 'webdrivers'
@@ -123,13 +125,7 @@ touch app/views/posts/show.html.erb && \
 touch app/views/posts/index.html.erb
 ```
 
-Create a test:
-
-```sh
-touch spec/system/posts_spec.rb
-```
-
-And add:
+Create a test with `touch spec/system/posts_spec.rb`, and add:
 
 ```rb
 require 'rails_helper'
@@ -144,11 +140,11 @@ feature 'creates a post', type: :system, js: true do
 end
 ```
 
-That was a lot of work. Make sure everything is working by running `rspec spec/system`. If the test passes, everything is working correctly.
+Make sure everything is working by running `rspec spec/system`. If the test passes, everything is working correctly.
 
 ## E2E with Rails' System Tests
 
-Before moving on to using cypress.io, let's make sure the code is working correctly using the built in system tests, which run using `selenium_chrome_headless`. Update `spec/system/posts_spec.rb`:
+Before moving on to using Cypress, let's make sure the code is working correctly using the built in system tests, which run using `selenium_chrome_headless`. Update `spec/system/posts_spec.rb`:
 
 ```rb
 require 'rails_helper'
@@ -246,7 +242,7 @@ Now we need the views. Start with `app/views/posts/_form.html.erb`:
 <% end %>
 ```
 
-We included a flash message validating the minimum length of a post - we will add this validation in a momnet. First, update `app/views/posts/new.html.erb`:
+We included a flash message validating the minimum length of a post - we will add this validation in a moment. First, update `app/views/posts/new.html.erb`:
 
 ```rb
 <%= render partial: 'form' %>
@@ -336,7 +332,7 @@ Running `rspec spec/system` should yield three passing tests.
 
 ## Installing and Setting Up Cypress
 
-Now we have a boring, yet working and well tested Rails app, let's proceed to add Cypress and migrate our test suite. Firstly, install Cypress and a few dependecies with:
+Now we have a boring, yet working and well tested Rails app. Let's proceed to add Cypress and migrate our test suite. Firstly, install Cypress and a few dependecies with:
 
 ```sh
 yarn add cypress axios --dev
@@ -389,7 +385,7 @@ describe('Creates a post', () => {
 })
 ```
 
-The Cypress DSL is fairly easy to read. Strictly speaking, `{force: true}` should not be necessary. Some of my tests were randomly failing to find the element, though, so I added it. I'll investigate this in more detail later.
+The Cypress DSL is fairly easy to read. Strictly speaking, `{force: true}` should not be necessary. Some of my tests were randomly failing without this, though, so I added it. I'll investigate this in more detail later.
 
 If you still have the Cypress UI open, search for the test using the search box:
 
@@ -439,9 +435,11 @@ Rails.application.routes.draw do
 
   # ...
 
-  namespace :test do
-    post 'clean_database', to: 'databases#clean_database'
-    post 'seed_posts', to: 'seeds#seed_posts'
+  if Rails.env.test?
+    namespace :test do
+      post 'clean_database', to: 'databases#clean_database'
+      post 'seed_posts', to: 'seeds#seed_posts'
+    end
   end
 end
 ```
@@ -538,7 +536,7 @@ If you look closely, only on the initial opening of the Cypress UI, the browser 
 
 Once you have the UI running, however, simply rerunning the test should be enough to pass. Typically I only open the UI once, and leave it open, so it is not a big deal locally. On CI, this is a huge problem though. I'm going to get in contact with the Cypress team and see if they have a work around.
 
-Anyway, one last thing I want to add is the ability to seed some data, depending on the test. For this, I'll use another test-env-only controller. Create it with `touch app/controllers/test/seeds_controller.rb`. Add a test with `touch spec/controllers/test/seeds_controller_spec.rb`. Add the following test:
+One last thing I want to add is the ability to seed some data, depending on the test. For this, I'll use another test-env-only controller. Create it with `touch app/controllers/test/seeds_controller.rb`. Add a test with `touch spec/controllers/test/seeds_controller_spec.rb`. Add the following test:
 
 ```rb
 require 'rails_helper'
